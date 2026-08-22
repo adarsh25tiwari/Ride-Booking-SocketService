@@ -48,7 +48,7 @@ public class DriverRequestController {
     @MessageMapping("/rideResponse/{userId}")
     public synchronized void rideResponseHandler(@DestinationVariable String userId, RideResponseDto rideResponseDto) {
 
-        System.out.println("Driver " + userId +" response: " + rideResponseDto.getResponse());
+        System.out.println("Driver "+ userId +" response: " + rideResponseDto.getResponse());
         // Driver rejected the ride
         if (!Boolean.TRUE.equals(rideResponseDto.getResponse())) {
             System.out.println("Driver rejected the ride");
@@ -58,7 +58,7 @@ public class DriverRequestController {
         // Driver accepted the ride
         InternalBookingUpdateRequestDto requestDto = InternalBookingUpdateRequestDto.builder()
                         .driverId(Long.parseLong(userId))
-                        .bookingStatus("SCHEDULED")
+                        //.bookingStatus("SCHEDULED")
                         .build();
 
         HttpHeaders headers = new HttpHeaders();
