@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ride Booking - Driver WebSocket</title>
+    <!-- SockJS -->
     <script src="https://cdn.jsdelivr.net/sockjs/1.1.4/sockjs.min.js"></script>
+    <!-- STOMP -->
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 </head>
 <body>
@@ -20,43 +22,52 @@
 
 <script>
     let stompClient = null;
-    // We are pretending to be Driver 3
-    const driverId = 3;
-    // Store the latest booking received from Socket Service
+
+    // Ask for Driver ID when opening the page.
+    // This allows us to test multiple drivers using multiple tabs.
+    const driverId = Number(prompt("Enter Driver Id"));
+    // Stores the latest booking received by this driver.
     let currentBookingId = null;
-    document.addEventListener("DOMContentLoaded", () => {
-        connect();
-    });
+    // Page load
+    document.addEventListener("DOMContentLoaded", () => {connect();});
+    // CONNECT TO SOCKET SERVICE
     function connect() {
-        const socket = new SockJS(
-            "http://localhost:8080/websocket"
-        );
-
+        console.log("Connecting as Driver:", driverId);
+        const socket = new SockJS("http://localhost:8080/websocket");
         stompClient = Stomp.over(socket);
-        stompClient.connect({}, function (frame) {
-                console.log("Connected: " + frame);
+        stompClient.connect(
+            {}, function (frame) {
+                console.log("Connected:", frame);
+                console.log("Driver ID:", driverId);
                 document.getElementById("connectionStatus").innerText = "Connected as Driver " + driverId;
-                // Subscribe to ride requests
 
-                stompClient.subscribe("/topic/rideRequest", function (message) {
-                        console.log("Ride request received:", message.body);
+                // DRIVER-SPECIFIC TOPIC
+                const topic = "/topic/rideRequest/" + driverId;
+                console.log("Subscribing to:", topic);
+
+                // SUBSCRIBE TO RIDE REQUEST
+                stompClient.subscribe(topic, function (message) {
+                        console.log("RIDE REQUEST RECEIVED");
+                        console.log("Driver:", driverId);
+                        console.log("Message:", message.body);
+
+                        // Convert JSON string to JavaScript object
                         const rideRequest = JSON.parse(message.body);
-                        console.log("Driver IDs:", rideRequest.driverIds);
                         console.log("Booking ID:", rideRequest.bookingId);
+                        console.log("Nearby Driver IDs:", rideRequest.driverIds);
 
-                        // Check whether this ride was sent to this driver
-                        if (rideRequest.driverIds && rideRequest.driverIds.includes(driverId)) {
-                            currentBookingId = rideRequest.bookingId;
-                            document.getElementById("rideRequest").innerText =
-                                JSON.stringify(rideRequest, null, 2);
-
-                            console.log("Ride request is for Driver " + driverId);
-                        } else {
-                            console.log("Ride request is not for Driver " + driverId);
-                        }
+                        // Store booking ID so that Accept/Reject can use it.
+                        currentBookingId = rideRequest.bookingId;
+                        // Display ride request
+                        document.getElementById("rideRequest").innerText = JSON.stringify(rideRequest, null, 2);
                     }
                 );
+
+                console.log("Successfully subscribed to:", topic);
             },
+
+            // CONNECTION ERROR
+
             function (error) {
                 console.error("WebSocket connection error:", error);
                 document.getElementById("connectionStatus").innerText = "Connection failed";
@@ -64,22 +75,33 @@
         );
     }
 
-
+    // ACCEPT RIDE
     function acceptRide() {
         if (currentBookingId === null) {
             alert("No ride request available");
             return;
         }
+
         const rideResponse = {
             response: true,
             bookingId: currentBookingId
         };
 
-        stompClient.send("/app/rideResponse/" + driverId, {}, JSON.stringify(rideResponse));
+
+        // Example:
+        // Driver 1 -> /app/rideResponse/1
+        // Driver 2 -> /app/rideResponse/2
+        // Driver 3 -> /app/rideResponse/3
+
+        const destination = "/app/rideResponse/" + driverId;
+        console.log("Sending ACCEPT to:", destination);
+        console.log("Ride response:", rideResponse);
+
+        stompClient.send(destination, {}, JSON.stringify(rideResponse));
         console.log("Ride accepted:", rideResponse);
     }
 
-
+    // REJECT RIDE
     function rejectRide() {
         if (currentBookingId === null) {
             alert("No ride request available");
@@ -90,7 +112,11 @@
             bookingId: currentBookingId
         };
 
-        stompClient.send("/app/rideResponse/" + driverId, {}, JSON.stringify(rideResponse));
+        const destination = "/app/rideResponse/" + driverId;
+        console.log("Sending REJECT to:", destination);
+        console.log("Ride response:", rideResponse);
+
+        stompClient.send(destination, {}, JSON.stringify(rideResponse));
         console.log("Ride rejected:", rideResponse);
     }
 

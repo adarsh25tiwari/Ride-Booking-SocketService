@@ -10,6 +10,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
 
 
 @RestController
@@ -34,15 +35,20 @@ public class DriverRequestController {
 
 
  public void sendToDriversNewRideRequest(RideRequestDto rideRequestDto) {
-    System.out.println("Sending ride request to drivers");
-    simpMessagingTemplate.convertAndSend("/topic/rideRequest",rideRequestDto);
+     System.out.println("Sending ride request to nearby drivers");
+     for (Long driverId : rideRequestDto.getDriverIds()) {
+         String topic = "/topic/rideRequest/" + driverId;
+         System.out.println("Sending booking "+rideRequestDto.getBookingId()+" to driver "+ driverId);
+         System.out.println("ACTUAL TOPIC = " + topic);
+         simpMessagingTemplate.convertAndSend(topic, rideRequestDto);
+     }
+
  }
 
     @MessageMapping("/rideResponse/{userId}")
     public synchronized void rideResponseHandler(@DestinationVariable String userId, RideResponseDto rideResponseDto) {
 
         System.out.println("Driver " + userId +" response: " + rideResponseDto.getResponse());
-
         // Driver rejected the ride
         if (!Boolean.TRUE.equals(rideResponseDto.getResponse())) {
             System.out.println("Driver rejected the ride");
