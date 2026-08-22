@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class RideRequestDto {
-    private Long passengerId;
+    //private Long passengerId;
     private List<Long> driverIds;   // ride request will send to drivers anyone can accept ride
     private Long bookingId;
 }

@@ -9,5 +9,5 @@ import lombok.*;
 @NoArgsConstructor
 public class RideResponseDto {
     private Boolean response;
-    private Long driverId;
+    private Long bookingId;
 }
